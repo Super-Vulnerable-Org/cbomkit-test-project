@@ -1,0 +1,77 @@
+# database.yml — CBOM scanner test configuration
+# Three database backends each configured with TLS/SSL for scanner coverage.
+
+# -------------------------------------------------------------------------
+# PostgreSQL — sslmode=require with mutual TLS certificate paths
+# -------------------------------------------------------------------------
+postgresql:
+  host: postgres.internal.example.com
+  port: 5432
+  dbname: cbomtest_db
+  username: cbomuser
+  password: "${POSTGRES_PASSWORD}"
+
+  # TLS configuration
+  sslmode: require                              # enforce encrypted connection
+  sslcert: /etc/cbomtest/certs/server.crt      # client certificate (PEM)
+  sslkey: /etc/cbomtest/keys/private.key       # client private key (PEM, RSA-2048)
+  sslrootcert: /etc/cbomtest/certs/ca.crt      # CA bundle for server verification
+
+  pool:
+    min_connections: 2
+    max_connections: 20
+    connection_timeout: 30s
+    idle_timeout: 600s
+
+  options:
+    application_name: cbomkit-test
+    connect_timeout: 10
+
+# -------------------------------------------------------------------------
+# MySQL — ssl-mode=REQUIRED with CA certificate path
+# -------------------------------------------------------------------------
+mysql:
+  host: mysql.internal.example.com
+  port: 3306
+  database: cbomtest_db
+  username: cbomuser
+  password: "${MYSQL_PASSWORD}"
+
+  # TLS configuration
+  ssl-mode: REQUIRED                           # enforce TLS (maps to --ssl-mode=REQUIRED)
+  ssl-ca: /etc/cbomtest/certs/ca.crt          # CA certificate for server verification
+  ssl-cert: /etc/cbomtest/certs/server.crt    # client certificate (PEM)
+  ssl-key: /etc/cbomtest/keys/private.key     # client private key
+
+  charset: utf8mb4
+  collation: utf8mb4_unicode_ci
+  pool:
+    max_open_conns: 25
+    max_idle_conns: 5
+    conn_max_lifetime: 300s
+
+# -------------------------------------------------------------------------
+# Redis — TLS enabled with cert, key, and CA paths
+# -------------------------------------------------------------------------
+redis:
+  host: redis.internal.example.com
+  port: 6380                                   # TLS port (default TLS: 6380)
+  db: 0
+  password: "${REDIS_PASSWORD}"
+
+  # TLS configuration (Redis 6+ tls.* directives style)
+  tls.cert-file: /etc/cbomtest/certs/server.crt       # client/server certificate
+  tls.key-file: /etc/cbomtest/keys/private.key        # private key (RSA-2048)
+  tls.ca-cert-file: /etc/cbomtest/certs/ca.crt        # CA bundle
+  tls.auth-clients: yes                               # require client certificates
+  tls.protocols: "TLSv1.2 TLSv1.3"                   # allowed TLS versions
+  tls.ciphers: "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-GCM-SHA384"
+  tls.prefer-server-ciphers: yes
+  tls.replication-cert: /etc/cbomtest/certs/server.crt
+  tls.replication-key: /etc/cbomtest/keys/private.key
+
+  pool:
+    max_idle: 10
+    max_active: 100
+    idle_timeout: 240s
+    wait: true

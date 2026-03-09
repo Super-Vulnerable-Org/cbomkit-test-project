@@ -1,0 +1,137 @@
+version: "3.9"
+
+# docker-compose.yml — CBOM scanner test stack
+# Each service is configured with TLS/SSL environment variables and cert volume mounts.
+
+volumes:
+  postgres_data:
+  mysql_data:
+  redis_data:
+
+networks:
+  cbom_net:
+    driver: bridge
+
+services:
+
+  # -------------------------------------------------------------------------
+  # PostgreSQL with SSL
+  # -------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: cbomtest_postgres
+    restart: unless-stopped
+    networks:
+      - cbom_net
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./certs/server.crt:/etc/ssl/certs/server.crt:ro
+      - ./keys/private.key:/etc/ssl/private/server.key:ro
+      - ./certs/ca.crt:/etc/ssl/certs/ca.crt:ro
+    environment:
+      POSTGRES_DB: cbomtest_db
+      POSTGRES_USER: cbomuser
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      # Enable SSL
+      POSTGRES_SSL: "on"
+      POSTGRES_SSL_CERT_FILE: /etc/ssl/certs/server.crt
+      POSTGRES_SSL_KEY_FILE: /etc/ssl/private/server.key
+      POSTGRES_SSL_CA_FILE: /etc/ssl/certs/ca.crt
+    command: >
+      postgres
+        -c ssl=on
+        -c ssl_cert_file=/etc/ssl/certs/server.crt
+        -c ssl_key_file=/etc/ssl/private/server.key
+        -c ssl_ca_file=/etc/ssl/certs/ca.crt
+        -c ssl_min_protocol_version=TLSv1.2
+        -c ssl_ciphers='ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cbomuser -d cbomtest_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # MySQL with SSL
+  # -------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.3
+    container_name: cbomtest_mysql
+    restart: unless-stopped
+    networks:
+      - cbom_net
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./certs/server.crt:/etc/mysql/certs/server.crt:ro
+      - ./keys/private.key:/etc/mysql/certs/server.key:ro
+      - ./certs/ca.crt:/etc/mysql/certs/ca.crt:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: cbomtest_db
+      MYSQL_USER: cbomuser
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      # SSL environment variables
+      MYSQL_SSL_CERT: /etc/mysql/certs/server.crt
+      MYSQL_SSL_KEY: /etc/mysql/certs/server.key
+      MYSQL_SSL_CA: /etc/mysql/certs/ca.crt
+    command: >
+      --ssl-ca=/etc/mysql/certs/ca.crt
+      --ssl-cert=/etc/mysql/certs/server.crt
+      --ssl-key=/etc/mysql/certs/server.key
+      --tls-version=TLSv1.2,TLSv1.3
+      --ssl-cipher=ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256
+      --require-secure-transport=ON
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root",
+             "--password=${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # Redis with TLS
+  # -------------------------------------------------------------------------
+  redis:
+    image: redis:7.2-alpine
+    container_name: cbomtest_redis
+    restart: unless-stopped
+    networks:
+      - cbom_net
+    ports:
+      - "6380:6380"
+    volumes:
+      - redis_data:/data
+      - ./certs/server.crt:/etc/redis/certs/server.crt:ro
+      - ./keys/private.key:/etc/redis/certs/server.key:ro
+      - ./certs/ca.crt:/etc/redis/certs/ca.crt:ro
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      # TLS paths (referenced by redis.conf)
+      REDIS_TLS_CERT_FILE: /etc/redis/certs/server.crt
+      REDIS_TLS_KEY_FILE: /etc/redis/certs/server.key
+      REDIS_TLS_CA_CERT_FILE: /etc/redis/certs/ca.crt
+    command: >
+      redis-server
+        --port 0
+        --tls-port 6380
+        --tls-cert-file /etc/redis/certs/server.crt
+        --tls-key-file  /etc/redis/certs/server.key
+        --tls-ca-cert-file /etc/redis/certs/ca.crt
+        --tls-auth-clients yes
+        --tls-protocols "TLSv1.2 TLSv1.3"
+        --tls-ciphers "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-GCM-SHA384"
+        --requirepass "${REDIS_PASSWORD}"
+        --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "--tls",
+             "--cert", "/etc/redis/certs/server.crt",
+             "--key",  "/etc/redis/certs/server.key",
+             "--cacert", "/etc/redis/certs/ca.crt",
+             "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
