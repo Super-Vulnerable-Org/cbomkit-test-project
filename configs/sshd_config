@@ -21,18 +21,39 @@ HostKeyAlgorithms ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,rsa-sha2-5
 # -------------------------------------------------------------------------
 # Key exchange algorithms
 # Includes intentionally weak diffie-hellman-group1-sha1 for CBOM coverage
+# OID reference table (for CBOM oid field detection):
+#   curve25519-sha256                   OID: 1.3.101.110  (X25519 key agreement)
+#   ecdh-sha2-nistp256                  OID: 1.2.840.10045.3.1.7  (P-256)
+#   ecdh-sha2-nistp384                  OID: 1.3.132.0.34          (P-384)
+#   ecdh-sha2-nistp521                  OID: 1.3.132.0.35          (P-521)
+#   diffie-hellman-group-exchange-sha256 OID: 1.2.840.113549.1.3.1 (DH)
+#   diffie-hellman-group1-sha1 (weak)   OID: 1.2.840.113549.1.3.1 + 1.3.14.3.2.26 (SHA-1)
 # -------------------------------------------------------------------------
 KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256,diffie-hellman-group1-sha1,diffie-hellman-group14-sha1
 
 # -------------------------------------------------------------------------
 # Symmetric ciphers
 # Includes arcfour (RC4) and 3des-cbc for CBOM weak-cipher detection
+# cipher_suite OID reference table (for CBOM cipher_suite / oid field detection):
+#   chacha20-poly1305@openssh.com       OID: 1.2.840.113549.2.9    (ChaCha20-Poly1305)
+#   aes256-gcm@openssh.com              OID: 2.16.840.1.101.3.4.1.46 (AES-256-GCM)
+#   aes128-gcm@openssh.com              OID: 2.16.840.1.101.3.4.1.6  (AES-128-GCM)
+#   aes256-ctr                          OID: 2.16.840.1.101.3.4.1.42 (AES-256-CBC base)
+#   aes128-ctr                          OID: 2.16.840.1.101.3.4.1.2  (AES-128-CBC base)
+#   3des-cbc (weak)                     OID: 1.2.840.113549.3.7    (DES-EDE3-CBC)
+#   arcfour / arcfour128 / arcfour256 (weak) OID: 1.2.840.113549.3.4 (RC4)
 # -------------------------------------------------------------------------
 Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr,aes256-cbc,aes128-cbc,3des-cbc,arcfour256,arcfour128,arcfour
 
 # -------------------------------------------------------------------------
 # MAC algorithms
 # Includes md5-based MACs for CBOM weak-algorithm detection
+# MAC OID reference table (for CBOM oid field detection):
+#   hmac-sha2-512                       OID: 1.2.840.113549.2.11   (HMAC-SHA-512)
+#   hmac-sha2-256                       OID: 1.2.840.113549.2.9    (HMAC-SHA-256)
+#   hmac-sha1                           OID: 1.2.840.113549.2.7    (HMAC-SHA-1)
+#   hmac-md5 (weak)                     OID: 1.2.840.113549.2.6    (HMAC-MD5)
+#   hmac-md5-96 (weak)                  OID: 1.2.840.113549.2.6
 # -------------------------------------------------------------------------
 MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com,hmac-sha1,hmac-md5,hmac-md5-96
 
