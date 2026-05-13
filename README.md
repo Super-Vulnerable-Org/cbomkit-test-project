@@ -1,4 +1,4 @@
-# cbomkit-test-project  
+# cbomkit-test-project   
 
 A synthetic test repository containing intentionally diverse cryptographic assets for validating **CBOM (Cryptographic Bill of Materials) scanner** coverage across all detection categories.
 
